@@ -1,0 +1,19 @@
+{
+  "name": "fifa-wc-2026-predictor",
+  "resources": [
+    {
+      "name": "serving-endpoint",
+      "serving_endpoint": {
+        "name": "fifa-team-win-predictor",
+        "permission": "CAN_QUERY"
+      }
+    },
+    {
+      "name": "sql-warehouse",
+      "sql_warehouse": {
+        "id": "f9bb0b517b9fc8ba",
+        "permission": "CAN_USE"
+      }
+    }
+  ]
+}

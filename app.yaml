@@ -6,3 +6,13 @@ command:
   - "$DATABRICKS_APP_PORT"
   - --server.headless
   - "true"
+
+env:
+  # Inyectados desde los resources declarados en la app
+  # (serving endpoint con CAN_QUERY, SQL warehouse con CAN_USE)
+  - name: MODEL_ENDPOINT
+    valueFrom: serving-endpoint
+  - name: WAREHOUSE_ID
+    valueFrom: sql-warehouse
+  - name: STREAMLIT_BROWSER_GATHER_USAGE_STATS
+    value: "false"

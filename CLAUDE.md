@@ -4,28 +4,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A single-page Streamlit app (`app.py`) that predicts FIFA World Cup 2026 match outcomes. The user enters two team names; the app queries historical player/team stats from Databricks Unity Catalog, builds a 79-feature vector per team, and calls a Databricks ML serving endpoint to get win probabilities, which are normalized and displayed head-to-head.
+A Streamlit app (Databricks App) that predicts FIFA World Cup 2026 match outcomes with a match-level LightGBM model served from Databricks Model Serving. The user picks two teams; the app builds 26 pre-match features (dynamic Elo, last-5 form, head-to-head, squad quality) from state tables in Unity Catalog and shows calibrated-ish win/draw/loss probabilities with explanatory visuals. **The Kaggle dataset is synthetic — predictions hover near chance; this is documented in-app and is a data limitation, not a bug.**
 
-## Running the app
+## Commands
 
 ```bash
-pip install -r requirements.txt
-streamlit run app.py
+# Tests (12, pure logic — no network)
+.venv/Scripts/python.exe -m pytest tests -q
+
+# Run app locally (uses local model instead of the serving endpoint)
+PYTHONUTF8=1 MODEL_LOCAL_URI="models:/workspace.fifa_wc_gold.fifa_team_win_predictor/5" \
+  .venv/Scripts/python.exe -m streamlit run app.py
+
+# Retrain + register a new model version (LOCAL ONLY — see constraint below)
+PYTHONUTF8=1 .venv/Scripts/python.exe training/train_local.py
 ```
 
-The app requires Databricks credentials to be configured (via `databricks-sdk`'s standard auth resolution — e.g. `DATABRICKS_HOST`/`DATABRICKS_TOKEN` env vars or a configured CLI profile) since it makes live calls to a Databricks workspace. There are no local tests, lint config, or build step in this repo.
+Always set `PYTHONUTF8=1` on Windows — MLflow prints emoji that crash cp1252.
 
-In production it runs as a Databricks App, launched per `app.yaml` via `streamlit run app.py --server.port $DATABRICKS_APP_PORT --server.headless true`.
+## Hard infrastructure constraint
+
+**Serverless jobs in this workspace (Free Edition) cannot read or write Unity Catalog model artifacts** (S3 explicit deny). Model training/registration must run locally (`training/train_local.py`, `training/register_v5.py`) via the `.venv`; data moves through SQL Warehouse `f9bb0b517b9fc8ba`. When registering models locally: pin `python=3.12` in `conda_env` (serving doesn't support 3.14) and pass `skops_trusted_types`.
 
 ## Architecture
 
-Everything lives in `app.py`. The flow per comparison is:
+- **`fifa_features.py`** — the contract between training and serving: `FEATURE_COLUMNS` order and `build_feature_row()` must produce identical rows in both. Any feature change requires retraining AND redeploying together.
+- **`app.py`** — Streamlit UI. Reads `team_state_current` + `h2h_state` (cached 10 min), builds features, queries the endpoint (`MODEL_ENDPOINT` env) or a local model (`MODEL_LOCAL_URI` env). Predictions are symmetrized: A-vs-B and mirrored B-vs-A averaged, so selection order doesn't matter. Charts are hand-rolled HTML/CSS (palette: blue #2a78d6 team A, orange #eb6834 team B, gray draw).
+- **`app_helpers.py`** — pure logic extracted for testability (input dtypes, mirror-averaging, friendly errors, verdicts). Model signature has 4 `long` columns (`INT_COLS`) — dtype mismatches fail schema enforcement at the endpoint.
+- **`training/train_local.py`** — full pipeline: SQL aggregation → per-match features built chronologically (windows strictly exclude the current match — the original model's fatal flaw was score leakage) → temporal split 70/10/20 → LogReg/XGB/LGBM tuning on TimeSeriesSplit → MLflow → UC registration → writes the state tables.
+- **`training/train_match_predictor.py`** — same pipeline as a Databricks notebook; kept for reference but **cannot register models** (see constraint).
+- **Model lineage**: v1 = old leaky player-level model; v4 = match-level + Platt (calibration hurt: 105-row cal set); **v5 = match-level uncalibrated, the production candidate**. Metrics in `training/phase1_results.json`.
 
-1. **`get_team_features(team_name)`** — runs a SQL aggregation against `workspace.fifa_wc_gold.player_performance_ml` (via `w.statement_execution.execute_statement`, polling for completion), averaging/summing player stats for the team. It then hand-builds a fixed 79-key feature dict (`features`) that the ML model expects — team-level aggregates (age, market value, xG, pass accuracy, etc.) are mapped onto per-player-shaped fields, and many fields the query doesn't produce (crosses, aerial duels, sprint distance, etc.) are hardcoded placeholder constants. Any missing/null SQL value falls back to a hardcoded default (e.g. `avg_age = 28.0`).
-2. **`convert_features_to_numeric(features_dict)`** — coerces the feature dict to numeric types before sending to the model; `position` and `preferred_foot` are mapped from strings to ints via fixed lookup tables.
-3. **`predict_endpoint(endpoint_name, features_dict)`** — calls the `fifa-team-win-predictor` Databricks serving endpoint (`w.serving_endpoints.query`) with the numeric feature row and returns the raw prediction.
-4. The two teams' raw predictions are normalized against each other (`prob_a / (prob_a + prob_b)`) since the model doesn't produce a naturally paired probability, then rendered with Streamlit metrics/progress bars and a favorite/underdog verdict based on the margin.
+## Deployment
 
-Key coupling to be aware of when editing: the feature dict keys and count (79) in `get_team_features` must exactly match what the `fifa-team-win-predictor` model endpoint expects — the SQL query, the hardcoded warehouse ID (`f9bb0b517b9fc8ba`), the Unity Catalog table name, and the model's feature schema are all implicitly coupled and live only in this one file.
-
-Note: team name lookups are done via raw f-string SQL interpolation (`WHERE LOWER(team) = LOWER('{team_name}')`), not parameterized queries.
+`deploy/app_resources.json` (endpoint CAN_QUERY + warehouse CAN_USE via `databricks apps update`), `deploy/grants.sql` (SELECT on state tables for the app's service principal `13d449ab-c727-44b6-88f9-89eb887379a0`), then `databricks sync` to the workspace folder and `databricks apps deploy`. `app.yaml` injects `MODEL_ENDPOINT`/`WAREHOUSE_ID` from the declared resources via `valueFrom`.
