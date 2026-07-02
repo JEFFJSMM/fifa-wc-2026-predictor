@@ -1,6 +1,6 @@
 import streamlit as st
 from databricks.sdk import WorkspaceClient
-from databricks.sdk.service.sql import StatementState
+from databricks.sdk.service.sql import StatementState, StatementParameterListItem
 import time
 
 # Configuración de la página
@@ -68,8 +68,8 @@ def predict_endpoint(endpoint_name, features_dict):
 # Función para obtener estadísticas de un equipo
 def get_team_features(team_name):
     try:
-        query = f"""
-        SELECT 
+        query = """
+        SELECT
             AVG(CAST(age AS DOUBLE)) as avg_age,
             AVG(CAST(height_cm AS DOUBLE)) as avg_height,
             AVG(CAST(weight_kg AS DOUBLE)) as avg_weight,
@@ -93,14 +93,15 @@ def get_team_features(team_name):
             SUM(CASE WHEN match_result = 'W' THEN 1 ELSE 0 END) as total_wins,
             AVG(CAST(goals_team AS DOUBLE)) as avg_goals_per_game
         FROM workspace.fifa_wc_gold.player_performance_ml
-        WHERE LOWER(team) = LOWER('{team_name}')
+        WHERE LOWER(team) = LOWER(:team_name)
         """
-        
+
         statement = w.statement_execution.execute_statement(
             warehouse_id="f9bb0b517b9fc8ba",
             statement=query,
             catalog="workspace",
-            schema="fifa_wc_gold"
+            schema="fifa_wc_gold",
+            parameters=[StatementParameterListItem(name="team_name", value=team_name)]
         )
         
         max_wait = 30
