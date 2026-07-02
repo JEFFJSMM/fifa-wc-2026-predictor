@@ -1,0 +1,49 @@
+{
+  "best_algorithm": "lightgbm",
+  "best_params": {
+    "subsample": 0.8,
+    "reg_lambda": 10.0,
+    "num_leaves": 7,
+    "n_estimators": 100,
+    "min_child_samples": 10,
+    "max_depth": 2,
+    "learning_rate": 0.01,
+    "colsample_bytree": 0.8
+  },
+  "cv_log_loss_by_algorithm": {
+    "logistic_regression": 1.107,
+    "xgboost": 1.1287,
+    "lightgbm": 1.1059
+  },
+  "registered_model_version": "4",
+  "n_train": 735,
+  "n_cal": 105,
+  "n_test": 210,
+  "n_test_nondraw": 152,
+  "metrics_new_calibrated": {
+    "accuracy_3class": 0.35714285714285715,
+    "log_loss_3class": 1.148878137053083,
+    "brier_3class": 0.7005281365747502,
+    "accuracy_binary_nondraw": 0.4934210526315789,
+    "log_loss_binary_nondraw": 0.736068273178827,
+    "brier_binary_nondraw": 0.27055842295564814,
+    "ece_binary_nondraw": 0.14306356684832294
+  },
+  "metrics_new_uncalibrated": {
+    "accuracy_3class": 0.4,
+    "log_loss_3class": 1.087443419896397,
+    "brier_3class": 0.6589000803405636,
+    "accuracy_binary_nondraw": 0.5526315789473685,
+    "log_loss_binary_nondraw": 0.6860475766404467,
+    "brier_binary_nondraw": 0.24645748145543137,
+    "ece_binary_nondraw": 0.02685441219046959
+  },
+  "metrics_old_as_deployed": {
+    "accuracy_binary_nondraw": 0.5723684210526315,
+    "log_loss_binary_nondraw": 0.6841802972211444,
+    "brier_binary_nondraw": 0.24553493556966197,
+    "ece_binary_nondraw": 0.04382100292489299,
+    "accuracy_3class": 0.4142857142857143
+  },
+  "mlflow_parent_run": "e3b98b32fceb46168361aa7a24a021b8"
+}

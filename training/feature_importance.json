@@ -1,0 +1,110 @@
+{
+  "algorithm": "lightgbm",
+  "importance_type": "split",
+  "features": [
+    {
+      "feature": "elo_diff",
+      "importance": 134
+    },
+    {
+      "feature": "form5_rating_diff",
+      "importance": 130
+    },
+    {
+      "feature": "form5_xg_diff",
+      "importance": 89
+    },
+    {
+      "feature": "form5_shots_diff",
+      "importance": 59
+    },
+    {
+      "feature": "form5_gf_diff",
+      "importance": 58
+    },
+    {
+      "feature": "h2h_matches",
+      "importance": 50
+    },
+    {
+      "feature": "squad_value_diff",
+      "importance": 44
+    },
+    {
+      "feature": "squad_age_diff",
+      "importance": 43
+    },
+    {
+      "feature": "elo_a",
+      "importance": 42
+    },
+    {
+      "feature": "winrate_b",
+      "importance": 32
+    },
+    {
+      "feature": "winrate_a",
+      "importance": 28
+    },
+    {
+      "feature": "form5_ppg_b",
+      "importance": 26
+    },
+    {
+      "feature": "rest_diff",
+      "importance": 23
+    },
+    {
+      "feature": "matches_played_a",
+      "importance": 23
+    },
+    {
+      "feature": "elo_b",
+      "importance": 17
+    },
+    {
+      "feature": "matches_played_b",
+      "importance": 16
+    },
+    {
+      "feature": "form5_ga_diff",
+      "importance": 15
+    },
+    {
+      "feature": "winrate_diff",
+      "importance": 15
+    },
+    {
+      "feature": "form5_ppg_a",
+      "importance": 14
+    },
+    {
+      "feature": "form5_ppg_diff",
+      "importance": 9
+    },
+    {
+      "feature": "rest_days_a",
+      "importance": 9
+    },
+    {
+      "feature": "squad_height_diff",
+      "importance": 4
+    },
+    {
+      "feature": "stage_knockout",
+      "importance": 3
+    },
+    {
+      "feature": "rest_days_b",
+      "importance": 1
+    },
+    {
+      "feature": "h2h_winrate_a",
+      "importance": 1
+    },
+    {
+      "feature": "h2h_gd_a",
+      "importance": 0
+    }
+  ]
+}
